@@ -79,30 +79,39 @@ def detect_marker_on_screenshot(image_path):
     print(f"\n[DET] Analyzing {image_path}...")
     
     # 1. Load Image
-    img = cv2.imread(image_path, 0) # Load as Grayscale
-    
-    # 2. AUTO-INVERT LOGIC (Crucial for Screenshots)
-    # Check the mean brightness. If it's bright (>127), it's a white background.
+    img = cv2.imread(image_path, 0)
+    if img is None:
+        print("Error: Could not load image.")
+        return
+
+    # 2. AUTO-INVERT (Fix for White Backgrounds)
+    # If the image is mostly bright, it's a white background.
+    # We invert it so the objects become White and background becomes Black.
     if np.mean(img) > 127:
-        print("[INFO] White background detected. Inverting image...")
-        # Invert: Black becomes White (255), White becomes Black (0)
+        print("[INFO] White background detected. Inverting...")
         img = cv2.bitwise_not(img)
-        
-    # 3. Threshold to get solid shapes
-    # Use a binary threshold to isolate the now-white star from the background
-    _, thresh = cv2.threshold(img, 100, 255, cv2.THRESH_BINARY)
     
-    # 4. Find Contours
-    contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    # 3. Thresholding
+    # We use 127 to kill the faint grid lines (which are usually grey)
+    _, thresh = cv2.threshold(img, 127, 255, cv2.THRESH_BINARY)
+    
+    # 4. Find Contours (THE CRITICAL FIX)
+    # RETR_TREE retrieves all contours, even those nested inside other shapes (like your star inside the arena)
+    contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
     output_img = cv2.cvtColor(thresh, cv2.COLOR_GRAY2BGR)
     
-    found_any = False
+    print(f"[INFO] Found {len(contours)} contours.")
+    found_count = 0
     
     for i, cnt in enumerate(contours):
         area = cv2.contourArea(cnt)
-        # Filter tiny noise (grid lines)
-        if area < 200: continue
         
+        # Filter 1: Size
+        # Ignore tiny noise (<100) and ignore the GIANT arena wall (>90% of image)
+        img_area = img.shape[0] * img.shape[1]
+        if area < 100 or area > (img_area * 0.9): 
+            continue
+            
         x, y, w, h = cv2.boundingRect(cnt)
         
         # --- METRIC 1: SOLIDITY ---
@@ -123,47 +132,47 @@ def detect_marker_on_screenshot(image_path):
             d = math.sqrt((px - cx)**2 + (py - cy)**2)
             distances.append(d)
         
-        # Find peaks (Spikes)
-        peaks, _ = find_peaks(distances, prominence=5, width=2)
+        # Lower prominence slightly to catch blurry screenshot spikes
+        peaks, _ = find_peaks(distances, prominence=3, width=2)
         num_peaks = len(peaks)
         
-        # --- FINAL JUDGMENT (Updated for 8-Point Star) ---
+        # --- CLASSIFICATION ---
         is_marker = False
         
-        # Check 1: Is it Spiky? (Solidity < 0.8)
-        if solidity < 0.8:
-            # Check 2: Does it have enough peaks?
-            # Your image has an 8-point star, so we look for 7-9 peaks
+        # Star Logic:
+        # 1. Low Solidity (It's spiky, not a round rock)
+        # 2. Correct number of spikes (Your star has 8, so we accept 7-9)
+        if solidity < 0.85:
             if 6 <= num_peaks <= 10: 
                 is_marker = True
             
         # Draw Results
         if is_marker:
-            found_any = True
+            found_count += 1
             color = (0, 255, 0) # Green
             label = "STAR"
             info = f"Sol:{solidity:.2f} | Pks:{num_peaks}"
             print(f"   >>> Object #{i}: ✅ MARKER FOUND! ({info})")
-            cv2.rectangle(output_img, (x, y), (x+w, y+h), color, 3)
+            
+            # Thick box for visibility
+            cv2.rectangle(output_img, (x, y), (x+w, y+h), color, 2)
+            # Draw label above the box
             cv2.putText(output_img, label, (x, y-20), cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
             cv2.putText(output_img, info, (x, y-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1)
         else:
-            # It's likely a rock or the map border
+            # Draw red box for "Other Stuff" (like the C-shaped markings)
             color = (0, 0, 255) # Red
             cv2.rectangle(output_img, (x, y), (x+w, y+h), color, 1)
 
-    if not found_any:
-        print("[WARNING] No marker found. Adjust 'prominence' or 'solidity' thresholds.")
-
-    cv2.imwrite("final_screenshot_result.png", output_img)
-    print("\n[DONE] Result saved to 'final_screenshot_result.png'")
+    # Save and Show
+    cv2.imwrite("fixed_result.png", output_img)
+    print(f"\n[DONE] Found {found_count} stars. Saved to 'fixed_result.png'")
     
     plt.figure(figsize=(10, 10))
     plt.imshow(cv2.cvtColor(output_img, cv2.COLOR_BGR2RGB))
-    plt.title("Green = 8-Point Star | Red = Other Objects")
     plt.axis('off')
+    plt.title(f"Result: {found_count} Stars Detected")
     plt.show()
 
 if __name__ == "__main__":
-    # Run on your specific image
-    detect_marker_on_screenshot("immg.png")
+    detect_marker_on_screenshot("image_test.png")

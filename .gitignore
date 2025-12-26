@@ -3,3 +3,4 @@ log/
 CoppeliaSim*
 build/
 install/
+*.png
