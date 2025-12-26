@@ -6,7 +6,7 @@ from geometry_msgs.msg import PoseStamped
 from cv_bridge import CvBridge
 import cv2
 import math
-
+#this script doesnt work yet but is intended makes the robot move to a location and stop if it detects a square shape
 class ShapeHunter(Node):
     def __init__(self):
         super().__init__('shape_hunter')
