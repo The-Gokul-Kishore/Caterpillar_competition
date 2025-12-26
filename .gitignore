@@ -1,0 +1,5 @@
+.vscode/
+log/
+CoppeliaSim*
+build/
+install/
