@@ -32,3 +32,8 @@ ros2 run python_trial_pkg subscriber
 ```
 ros2 run ros_gz_sim create -file gazebo_models/spiky_star.urdf -name gazebo_models\spiky_star -x 1.0 -y 0.0 -z 0.0
 ```
+
+## colcon build:
+```
+colcon build --packages-select python_trial_pkg
+```

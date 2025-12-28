@@ -1,70 +1,71 @@
 <?xml version="1.0"?>
-<robot name="wall_star">
+<robot name="wall_star_mini">
   <link name="world"/>
 
   <link name="base_link">
     <inertial>
-      <mass value="1000.0"/> <inertia ixx="100" ixy="0" ixz="0" iyy="100" iyz="0" izz="100"/>
+      <mass value="10.0"/> 
+      <inertia ixx="1" ixy="0" ixz="0" iyy="1" iyz="0" izz="1"/>
     </inertial>
 
     <visual>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
       <material name="red"><color rgba="1 0 0 1"/></material>
-      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 0.125"/>
     </visual>
     <collision>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
-      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
+      <origin rpy="0 0 0" xyz="0 0 0.125"/>
     </collision>
 
     <visual>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
       <material name="red"/>
-      <origin rpy="0 0 0.5236" xyz="0 0 0.5"/>
+      <origin rpy="0 0 0.5236" xyz="0 0 0.125"/>
     </visual>
     <collision>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
-      <origin rpy="0 0 0.5236" xyz="0 0 0.5"/>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
+      <origin rpy="0 0 0.5236" xyz="0 0 0.125"/>
     </collision>
 
     <visual>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
       <material name="red"/>
-      <origin rpy="0 0 1.0472" xyz="0 0 0.5"/>
+      <origin rpy="0 0 1.0472" xyz="0 0 0.125"/>
     </visual>
     <collision>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
-      <origin rpy="0 0 1.0472" xyz="0 0 0.5"/>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
+      <origin rpy="0 0 1.0472" xyz="0 0 0.125"/>
     </collision>
 
     <visual>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
       <material name="red"/>
-      <origin rpy="0 0 1.5708" xyz="0 0 0.5"/>
+      <origin rpy="0 0 1.5708" xyz="0 0 0.125"/>
     </visual>
     <collision>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
-      <origin rpy="0 0 1.5708" xyz="0 0 0.5"/>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
+      <origin rpy="0 0 1.5708" xyz="0 0 0.125"/>
     </collision>
 
     <visual>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
       <material name="red"/>
-      <origin rpy="0 0 2.0944" xyz="0 0 0.5"/>
+      <origin rpy="0 0 2.0944" xyz="0 0 0.125"/>
     </visual>
     <collision>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
-      <origin rpy="0 0 2.0944" xyz="0 0 0.5"/>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
+      <origin rpy="0 0 2.0944" xyz="0 0 0.125"/>
     </collision>
 
     <visual>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
       <material name="red"/>
-      <origin rpy="0 0 2.618" xyz="0 0 0.5"/>
+      <origin rpy="0 0 2.618" xyz="0 0 0.125"/>
     </visual>
     <collision>
-      <geometry><box size="1.5 0.05 1.0"/></geometry>
-      <origin rpy="0 0 2.618" xyz="0 0 0.5"/>
+      <geometry><box size="0.375 0.0125 0.25"/></geometry>
+      <origin rpy="0 0 2.618" xyz="0 0 0.125"/>
     </collision>
   </link>
   
