@@ -4,3 +4,5 @@ CoppeliaSim*
 build/
 install/
 *.png
+
+core.*

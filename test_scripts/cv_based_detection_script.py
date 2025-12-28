@@ -143,7 +143,7 @@ def detect_marker_on_screenshot(image_path):
         # 1. Low Solidity (It's spiky, not a round rock)
         # 2. Correct number of spikes (Your star has 8, so we accept 7-9)
         if solidity < 0.85:
-            if 6 <= num_peaks <= 10: 
+            if 4<= num_peaks <= 10: 
                 is_marker = True
             
         # Draw Results
@@ -175,4 +175,4 @@ def detect_marker_on_screenshot(image_path):
     plt.show()
 
 if __name__ == "__main__":
-    detect_marker_on_screenshot("image_test.png")
+    detect_marker_on_screenshot("image_many.png")
