@@ -21,7 +21,7 @@ class CostmapToImageConverter(Node):
         # 2. Subscribe to the Costmap
         self.subscription = self.create_subscription(
             OccupancyGrid,
-            '/global_costmap/costmap',
+            '/local_costmap/costmap',
             self.map_callback,
             costmap_qos)
             

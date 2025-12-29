@@ -30,10 +30,13 @@ ros2 run python_trial_pkg subscriber
 
 ## Spiky star:
 ```
-ros2 run ros_gz_sim create -file gazebo_models/spiky_star.urdf -name gazebo_models\spiky_star -x 1.0 -y 0.0 -z 0.0
+
+ros2 run ros_gz_sim create -file gazebo_models/tiny_spiky_star.urdf -name spiky_star -x 1.0 -y 0.5 -z 0.0
 ```
 
 ## colcon build:
 ```
 colcon build --packages-select python_trial_pkg
 ```
+
+ros2 run ros_gz_sim create -file gazebo_models/tiny_spiky_star.urdf -name spiky_star -x 1.0 -y 0.5 -z 0.0  this one right
