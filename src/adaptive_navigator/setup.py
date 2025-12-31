@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = 'python_trial_pkg'
+package_name = 'adaptive_navigator'
 
 setup(
     name=package_name,
@@ -15,8 +15,8 @@ setup(
     zip_safe=True,
     maintainer='gokulkishore',
     maintainer_email='gokulaenugu2005@gmail.com',
-    description='TODO: Package description',
-    license='TODO: License declaration',
+    description='a navigation package with adaptive search capabilities',
+    license='Apache License 2.0',
     extras_require={
         'test': [
             'pytest',
@@ -24,8 +24,8 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'publisher = python_trial_pkg.publisher:main',
-            'subscriber = python_trial_pkg.subscriber:main',
+            'publisher = adaptive_navigator.publisher:main',
+            'subscriber = adaptive_navigator.subscriber:main',
         ],
     },
 )

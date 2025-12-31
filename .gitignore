@@ -6,3 +6,4 @@ install/
 *.png
 
 core.*
+debug*/

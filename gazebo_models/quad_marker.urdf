@@ -1,0 +1,68 @@
+<?xml version="1.0"?>
+<robot name="quad_marker">
+  <link name="world"/>
+
+  <link name="base_link">
+    <inertial>
+      <mass value="1.0"/> 
+      <inertia ixx="0.01" ixy="0" ixz="0" iyy="0.01" iyz="0" izz="0.01"/>
+    </inertial>
+
+    <visual>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <material name="blue"><color rgba="0 0 1 1"/></material>
+      <origin rpy="0 0 0" xyz="0.06 0.06 0.1"/>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <origin rpy="0 0 0" xyz="0.06 0.06 0.1"/>
+    </collision>
+
+    <visual>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <material name="blue"/>
+      <origin rpy="0 0 0" xyz="0.06 -0.06 0.1"/>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <origin rpy="0 0 0" xyz="0.06 -0.06 0.1"/>
+    </collision>
+
+    <visual>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <material name="blue"/>
+      <origin rpy="0 0 0" xyz="-0.06 -0.06 0.1"/>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <origin rpy="0 0 0" xyz="-0.06 -0.06 0.1"/>
+    </collision>
+
+    <visual>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <material name="blue"/>
+      <origin rpy="0 0 0" xyz="-0.06 0.06 0.1"/>
+    </visual>
+    <collision>
+      <geometry><cylinder length="0.2" radius="0.02"/></geometry>
+      <origin rpy="0 0 0" xyz="-0.06 0.06 0.1"/>
+    </collision>
+    
+    <visual>
+      <geometry><box size="0.2 0.2 0.01"/></geometry>
+      <material name="transparent"><color rgba="0 0 0 0"/></material>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </visual>
+
+  </link>
+  
+  <joint name="fix_to_world" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+  </joint>
+
+  <gazebo>
+    <static>true</static>
+    <material>Gazebo/Blue</material>
+  </gazebo>
+</robot>
