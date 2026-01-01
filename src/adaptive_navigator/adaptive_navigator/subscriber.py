@@ -4,7 +4,7 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseStamped, PointStamped # Changed
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, SetBool
 import math
 import numpy as np
 
@@ -59,14 +59,25 @@ class MissionControlNode(Node):
         self.subscription = self.create_subscription(
             LaserScan, '/scan', self.scan_callback, 10)
             
-        self.srv = self.create_service(
-            Trigger, '/start_quad_phase', self.trigger_callback)
+        # Navigation services
+        self.srv_goto_quad = self.create_service(
+            Trigger, '/goto_quad', self.handle_goto_quad)
+        self.srv_goto_trinity = self.create_service(
+            Trigger, '/goto_trinity', self.handle_goto_trinity)
             
         self.trinity_detector = TrinityDetector()
         self.quad_detector = QuadDetector()
         self.debugger = DebugVisualizer(self)
         self.lidar_viz = LidarVisualizer()
-        
+
+        # --- DIGGING / CYCLE SETTINGS ---
+        # Counts how many offset points we've used around Trinity
+        self.dig_cycle = 0
+        # 30 cm radius around Trinity marker (meters)
+        self.DIG_RADIUS = 0.30
+        # How many distinct points per full circle (e.g. 8 -> every 45°)
+        self.POINTS_PER_CIRCLE = 8
+
         self.get_logger().info("⏳ WAITING FOR MAP TO AUTO-CALCULATE BOUNDARIES...")
         self.goal_start_time = self.navigator.get_clock().now()
 
@@ -141,21 +152,50 @@ class MissionControlNode(Node):
                 waypoints.append((self.bounds_x[0], y))
         return waypoints
 
-    def trigger_callback(self, request, response):
-        if self.state == STATE_WAITING_AT_TRINITY:
-            self.get_logger().info("🟢 COMMAND RECEIVED! Phase 2 Started.")
-            if self.quad_loc:
-                self.get_logger().info(f"🚀 Memory Recall: Quad is at {self.quad_loc}")
-                self.go_to_coord(self.quad_loc) # Now safer because quad_loc is in MAP frame
-                self.state = STATE_MOVING_TO_QUAD
-            else:
-                self.get_logger().info("🔎 Quad unknown. Resuming Search...")
-                self.state = STATE_SEARCHING
+    def handle_goto_quad(self, request, response):
+        """Service handler: Navigate to Quad marker"""
+        return self._goto_marker(self.quad_loc, "QUAD", STATE_MOVING_TO_QUAD, response)
+    
+    def handle_goto_trinity(self, request, response):
+        """Service handler: Navigate to Trinity marker"""
+        # Prefer an offset point on the circumference so each call visits
+        # a new digging spot around the Trinity marker.
+        goal = self.get_offset_trinity_goal()
+        return self._goto_marker(goal, "TRINITY", STATE_MOVING_TO_TRINITY, response)
+
+    def get_offset_trinity_goal(self):
+        """Return an (x,y) map coordinate on a circle around Trinity center.
+
+        The point advances each call according to self.dig_cycle. Returns
+        None if Trinity center is unknown.
+        """
+        if self.trinity_loc is None:
+            return None
+
+        # angle steps evenly around the circle
+        angle = (self.dig_cycle % self.POINTS_PER_CIRCLE) * (2 * math.pi / self.POINTS_PER_CIRCLE)
+        offset_x = self.trinity_loc[0] + (self.DIG_RADIUS * math.cos(angle))
+        offset_y = self.trinity_loc[1] + (self.DIG_RADIUS * math.sin(angle))
+
+        self.get_logger().info(f"🔄 Dig cycle {self.dig_cycle}: angle={math.degrees(angle):.1f}° target=({offset_x:.3f},{offset_y:.3f})")
+
+        # prepare next cycle
+        self.dig_cycle += 1
+        return (offset_x, offset_y)
+    
+    def _goto_marker(self, location, name, target_state, response):
+        """Reusable navigation logic for any marker"""
+        if location is None:
+            self.get_logger().info(f"🔎 {name} not found yet. Resuming search...")
+            self.state = STATE_SEARCHING
             response.success = True
-            response.message = "Proceeding"
+            response.message = f"{name} unknown. Searching..."
         else:
-            response.success = False
-            response.message = "Not ready yet."
+            self.get_logger().info(f"🚀 Navigating to {name} at {location}")
+            self.go_to_coord(location)
+            self.state = target_state
+            response.success = True
+            response.message = f"Going to {name}"
         return response
 
     def scan_callback(self, msg):
@@ -175,15 +215,23 @@ class MissionControlNode(Node):
         if trinity_found_rel and self.trinity_loc is None:
             # FIX: Convert Relative -> Map Frame IMMEDIATELY
             map_coords = self.transform_to_map(trinity_found_rel)
-            
+
             if map_coords:
                 self.trinity_loc = map_coords
                 self.get_logger().info(f"📍 TRINITY SAVED at MAP {self.trinity_loc}")
-                
+
                 if self.state == STATE_SEARCHING:
-                    self.get_logger().info("🛑 FOUND TARGET A! Switching Goal...")
-                    self.state = STATE_MOVING_TO_TRINITY
-                    self.go_to_coord(self.trinity_loc)
+                    # Choose an offset goal on the 30cm circumference
+                    goal = self.get_offset_trinity_goal()
+                    if goal:
+                        self.get_logger().info("🛑 FOUND TARGET A! Switching Goal to dig offset...")
+                        self.state = STATE_MOVING_TO_TRINITY
+                        self.go_to_coord(goal)
+                    else:
+                        # Fallback to center if something goes wrong
+                        self.get_logger().warn("⚠️ Failed to compute offset goal; going to center")
+                        self.state = STATE_MOVING_TO_TRINITY
+                        self.go_to_coord(self.trinity_loc)
 
         # 3. FOUND QUAD? (Memory)
         if quad_found_rel and (self.quad_loc is None):
@@ -200,17 +248,14 @@ class MissionControlNode(Node):
                      self.state = STATE_MOVING_TO_QUAD
                      self.goal_start_time = self.navigator.get_clock().now()
                      self.go_to_coord(self.quad_loc)
+        # State machine: Handle navigation
         if self.state == STATE_SEARCHING:
             self.perform_systematic_search()
-        elif self.state == STATE_MOVING_TO_TRINITY:
-            self.get_logger().info("🏁 Arrived at Trinity. WAITING FOR COMMAND.")
-            self.state = STATE_WAITING_AT_TRINITY
-        elif self.state == STATE_MOVING_TO_QUAD:
-            now = self.navigator.get_clock().now()
-            seconds_passed = (now - self.goal_start_time).nanoseconds / 1e9
-            if seconds_passed > 2.0 and self.navigator.isTaskComplete():
-                self.get_logger().info("🏆 MISSION COMPLETE.")
-                self.state = STATE_DONE
+        elif self.state in [STATE_MOVING_TO_TRINITY, STATE_MOVING_TO_QUAD]:
+            if self.navigator.isTaskComplete():
+                marker_name = "TRINITY" if self.state == STATE_MOVING_TO_TRINITY else "QUAD"
+                self.get_logger().info(f"🏁 Arrived at {marker_name}. Ready for next command.")
+                self.state = STATE_WAITING_AT_TRINITY  # Reuse waiting state for both
 
     def perform_systematic_search(self):
         if not self.navigator.isTaskComplete(): return

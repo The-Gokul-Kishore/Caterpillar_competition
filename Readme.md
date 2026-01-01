@@ -9,7 +9,6 @@ This workspace contains the source code, simulation models, and mission control 
 * **`src/adaptive_navigator`**: Main package containing the mission control node, detectors, and visualizers.
 * **`gazebo_models/`**: Custom URDF models for simulation targets (Trinity, Quad, Spiky Star).
 * **`debug_lidar/`**: Runtime output directory for OpenCV visualizations of Lidar clustering.
-* **`test_scripts/`**: Standalone scripts for unit testing logic.
 
 ## Prerequisites
 
@@ -92,8 +91,8 @@ Launch the autonomous executive node. This initiates Phase 1 (Search & Identify)
 
 ```bash
 source install/setup.bash
-# Run the mission control node (ensure executable name matches your setup)
-ros2 run adaptive_navigator mission_control_node
+ros2 run adaptive_navigator subscriber
+
 
 ```
 
@@ -104,7 +103,11 @@ ros2 run adaptive_navigator mission_control_node
 Once the robot identifies the Trinity marker and enters the `WAITING` state, send the service trigger to proceed to the Quad marker.
 
 ```bash
-ros2 service call /start_quad_phase std_srvs/srv/Trigger {}
+# Go to Quad
+ros2 service call /goto_quad std_srvs/srv/Trigger {}
+
+# Go to Trinity
+ros2 service call /goto_trinity std_srvs/srv/Trigger {}
 
 ```
 
