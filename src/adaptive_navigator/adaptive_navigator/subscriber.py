@@ -5,7 +5,9 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import OccupancyGrid
 from geometry_msgs.msg import PoseStamped, PointStamped # Changed
 from std_srvs.srv import Trigger, SetBool
+from std_msgs.msg import Bool
 import math
+
 import numpy as np
 
 # IMPORT TF2 (Crucial for coordinate conversion)
@@ -32,6 +34,7 @@ class MissionControlNode(Node):
         super().__init__('mission_control_node')
         
         self.navigator = BasicNavigator()
+        self.dig_pub = self.create_publisher(Bool, '/dig', 10)
         
         # --- TF BUFFER (The Fix) ---
         # We need this to calculate "Where is this detected point on the MAP?"
@@ -277,6 +280,9 @@ class MissionControlNode(Node):
             if self.navigator.isTaskComplete():
                 marker_name = "TRINITY" if self.state == STATE_MOVING_TO_TRINITY else "QUAD"
                 self.get_logger().info(f"🏁 Arrived at {marker_name}. Ready for next command.")
+                msg = Bool()
+                msg.data = True
+                self.dig_pub.publish(msg)
                 self.state = STATE_WAITING_AT_TRINITY  # Reuse waiting state for both
 
     def perform_systematic_search(self):
