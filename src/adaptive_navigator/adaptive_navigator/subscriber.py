@@ -68,27 +68,31 @@ class MissionControlNode(Node):
         self.trinity_detector = TrinityDetector()
         self.quad_detector = QuadDetector()
         self.debugger = DebugVisualizer(self)
-        self.lidar_viz = LidarVisualizer()
+        self.lidar_viz = LidarVisualizer(".")
 
         # --- DIGGING / CYCLE SETTINGS ---
         # Counts how many offset points we've used around Trinity
         self.dig_cycle = 0
-        # 30 cm radius around Trinity marker (meters)
-        self.DIG_RADIUS = 0.30
+        # 60 cm radius around Trinity marker (meters)
+        self.DIG_RADIUS =  0.60
         # How many distinct points per full circle (e.g. 8 -> every 45°)
         self.POINTS_PER_CIRCLE = 8
-
+        # --- NEW QUAD LINEAR SETTINGS ---
+        self.quad_cycle = 0            # Keeps track of which point in the line we are on
+        self.QUAD_START_OFFSET = 1.30  # Start 1.3 meters away from the marker
+        self.QUAD_STEP_SIZE = 0.15     # Move 15cm further away each time
         self.get_logger().info("⏳ WAITING FOR MAP TO AUTO-CALCULATE BOUNDARIES...")
         self.goal_start_time = self.navigator.get_clock().now()
 
-    def transform_to_map(self, local_point):
+    def transform_to_map(self, local_point,timestamp):
         """
         Converts a point (x,y) from 'base_link' (robot frame) to 'map' frame.
         """
         try:
             # 1. Create a PointStamped in the ROBOT frame (base_link)
             p_local = PointStamped()
-            p_local.header.frame_id = "base_link" # Assuming lidar is close to base_link
+            p_local.header.frame_id = "base_link" 
+            p_local.header.stamp = timestamp
             p_local.header.stamp = rclpy.time.Time().to_msg() # Use 'now'
             p_local.point.x = float(local_point[0])
             p_local.point.y = float(local_point[1])
@@ -153,8 +157,9 @@ class MissionControlNode(Node):
         return waypoints
 
     def handle_goto_quad(self, request, response):
-        """Service handler: Navigate to Quad marker"""
-        return self._goto_marker(self.quad_loc, "QUAD", STATE_MOVING_TO_QUAD, response)
+        """Service handler: Now uses the linear line logic instead of center"""
+        goal = self.get_linear_quad_goal()
+        return self._goto_marker(goal, "QUAD", STATE_MOVING_TO_QUAD, response)
     
     def handle_goto_trinity(self, request, response):
         """Service handler: Navigate to Trinity marker"""
@@ -182,6 +187,23 @@ class MissionControlNode(Node):
         # prepare next cycle
         self.dig_cycle += 1
         return (offset_x, offset_y)
+    def get_linear_quad_goal(self):
+        """Calculates a point in a straight line from the Quad marker."""
+        if self.quad_loc is None:
+            return None
+
+        # Distance = 1.3m + (0.15 * current_step)
+        dist = self.QUAD_START_OFFSET + (self.quad_cycle * self.QUAD_STEP_SIZE)
+        
+        # Calculate the new point (X moves horizontally)
+        target_x = self.quad_loc[0] + dist
+        target_y = self.quad_loc[1]
+
+        self.get_logger().info(f"📏 Quad Step {self.quad_cycle}: Distance is {dist:.2f}m")
+        
+        # Increment for the next time the service is called
+        self.quad_cycle += 1
+        return (target_x, target_y)
     
     def _goto_marker(self, location, name, target_state, response):
         """Reusable navigation logic for any marker"""
@@ -214,7 +236,7 @@ class MissionControlNode(Node):
         # 2. FOUND TRINITY?
         if trinity_found_rel and self.trinity_loc is None:
             # FIX: Convert Relative -> Map Frame IMMEDIATELY
-            map_coords = self.transform_to_map(trinity_found_rel)
+            map_coords = self.transform_to_map(trinity_found_rel, msg.header.stamp)
 
             if map_coords:
                 self.trinity_loc = map_coords
@@ -237,7 +259,7 @@ class MissionControlNode(Node):
         if quad_found_rel and (self.quad_loc is None):
             # FIX: Convert Relative -> Map Frame IMMEDIATELY
             # If we don't do this now, the coordinates become useless once the robot moves.
-            map_coords = self.transform_to_map(quad_found_rel)
+            map_coords = self.transform_to_map(quad_found_rel, msg.header.stamp)
             
             if map_coords:
                 self.quad_loc = map_coords
